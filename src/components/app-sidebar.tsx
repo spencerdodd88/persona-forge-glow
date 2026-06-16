@@ -12,7 +12,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
-const items = [
+type NavItem = { title: string; url: string; icon: typeof LayoutDashboard; accent?: boolean };
+const items: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "My Influencers", url: "/my-influencers", icon: Users },
   { title: "Create Influencer", url: "/create", icon: Sparkles, accent: true },
@@ -21,7 +22,7 @@ const items = [
   { title: "Friends & Groups", url: "/friends", icon: UsersRound },
   { title: "Monetization", url: "/monetization", icon: DollarSign },
   { title: "Settings", url: "/settings", icon: Settings },
-] as const;
+];
 
 export function AppSidebar() {
   const { state } = useSidebar();
