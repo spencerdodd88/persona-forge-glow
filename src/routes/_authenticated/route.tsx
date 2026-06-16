@@ -3,15 +3,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
+// DEV MODE: auth gate disabled so the app is browsable without signing in.
+// Re-enable by restoring the beforeLoad check below.
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
+    const { data } = await supabase.auth.getUser();
+    return { user: data.user ?? null };
   },
   component: AuthedLayout,
 });
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _redirect = redirect;
 
 function AuthedLayout() {
   return (
