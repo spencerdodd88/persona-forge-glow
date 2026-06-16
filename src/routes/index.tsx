@@ -4,6 +4,7 @@ import { Sparkles, Crown, Wand2, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "GenFluence — Create & Monetize AI Influencers" },
