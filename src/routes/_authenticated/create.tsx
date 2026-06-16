@@ -25,6 +25,8 @@ function CreatePage() {
   const navigate = useNavigate();
   const [config, setConfig] = useState<InfluencerConfig>(DEFAULT_CONFIG);
   const [renderedConfig, setRenderedConfig] = useState<InfluencerConfig>(DEFAULT_CONFIG);
+  const [pose, setPose] = useState(0);
+  const [renderedPose, setRenderedPose] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [version, setVersion] = useState(0);
@@ -36,11 +38,15 @@ function CreatePage() {
     setGenerating(true);
     debounceRef.current = setTimeout(() => {
       setRenderedConfig(config);
+      setRenderedPose(pose);
       setVersion((v) => v + 1);
       setGenerating(false);
     }, 550);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [config]);
+  }, [config, pose]);
+
+  const cyclePose = () => setPose((p) => (p + 1) % 3);
+
 
   const update = <K extends keyof InfluencerConfig>(key: K, value: InfluencerConfig[K]) =>
     setConfig((c) => ({ ...c, [key]: value }));
