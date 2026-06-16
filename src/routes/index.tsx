@@ -19,10 +19,8 @@ function Landing() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/dashboard", replace: true });
-      else setChecking(false);
-    });
+    // DEV MODE: skip auth check, land everyone in the studio.
+    navigate({ to: "/dashboard", replace: true });
   }, [navigate]);
 
   if (checking) {
