@@ -1,15 +1,17 @@
 import { type InfluencerConfig, SKIN_HEX, HAIR_HEX, EYE_HEX, SCENE_BG } from "./types";
 import { useId, useMemo } from "react";
 
-type Props = { config: InfluencerConfig; animated?: boolean };
+type Props = { config: InfluencerConfig; animated?: boolean; pose?: number };
 
 /**
  * Stylized SVG avatar that reacts to every config slider.
- * Body widths derive from bust/waist/hips; height scales the figure vertically;
- * face proportions shift slightly with age; hair shape from length/style.
- * Subtle CSS animations (breathing torso, gentle hair sway) give it life.
+ * viewBox is tuned so the full 3/4 figure fits in a 3:4 frame with `meet`.
+ * Pose index (0..2) shifts head tilt, arm position, and hair flow:
+ *   0 — hand on waist (signature)
+ *   1 — hair toss (head tilted, arm raised)
+ *   2 — looking away (head turned, soft arms)
  */
-export function InfluencerAvatar({ config, animated = true }: Props) {
+export function InfluencerAvatar({ config, animated = true, pose = 0 }: Props) {
   const id = useId();
   const skin = SKIN_HEX[config.skin_tone] ?? "#ecc6a8";
   const skinDark = useMemo(() => shade(skin, -0.18), [skin]);
@@ -18,22 +20,18 @@ export function InfluencerAvatar({ config, animated = true }: Props) {
   const lips = useMemo(() => shade(skin, -0.35, true), [skin]);
   const scene = SCENE_BG[config.scene_preset] ?? SCENE_BG["Coffee Shop"];
 
-  // Body proportions (centered around 200 wide canvas)
-  const bustW = lerp(38, 78, range(config.bust, 70, 120));
-  const waistW = lerp(28, 60, range(config.waist, 55, 90));
-  const hipsW = lerp(40, 82, range(config.hips, 75, 120));
-  // Height scales total figure height
-  const heightScale = lerp(0.93, 1.08, range(config.height_cm, 150, 190));
-  // Body type tweaks
-  const bodyMul: Record<string, number> = { Slim: 0.92, Athletic: 1, Curvy: 1.08, Voluptuous: 1.18 };
+  // Body proportions
+  const bustW = lerp(34, 70, range(config.bust, 70, 120));
+  const waistW = lerp(24, 52, range(config.waist, 55, 90));
+  const hipsW = lerp(38, 74, range(config.hips, 75, 120));
+  const heightScale = lerp(0.94, 1.06, range(config.height_cm, 150, 190));
+  const bodyMul: Record<string, number> = { Slim: 0.94, Athletic: 1, Curvy: 1.07, Voluptuous: 1.15 };
   const bm = bodyMul[config.body_type] ?? 1;
 
-  // Age affects face: younger => rounder cheeks, fuller lips
   const youth = 1 - range(config.age, 18, 45);
   const cheekR = 18 + youth * 6;
   const lipW = 22 + youth * 8;
 
-  // Hair shape
   const hairLong = ["Long", "Extra Long"].includes(config.hair_length);
   const hairMed = config.hair_length === "Medium";
   const hairShort = ["Pixie", "Short"].includes(config.hair_length);
@@ -41,19 +39,29 @@ export function InfluencerAvatar({ config, animated = true }: Props) {
   const ponytail = config.hair_style === "Ponytail";
   const bun = config.hair_style === "Bun";
 
-  // NSFW: shorter top hint (UI only, still tasteful stylized SVG)
   const topY = config.nsfw ? 240 : 230;
   const topH = config.nsfw ? 36 : 50;
 
+  // Pose-driven values
+  const headTilt = pose === 1 ? -8 : pose === 2 ? 10 : -2;
+  const headTurn = pose === 2 ? 0.85 : 1; // squashes face horizontally for 3/4 view
+  const leftArm = pose === 1
+    ? `M ${-bustW} ${-10} Q ${-bustW - 40} ${-50} ${-bustW - 18} ${-100}` // raised hair toss
+    : `M ${-bustW} ${-10} Q ${-bustW - 30} ${50} ${-waistW - 12} ${80}`;   // resting / hand on waist
+  const rightArm = pose === 2
+    ? `M ${bustW} ${-10} Q ${bustW + 32} ${30} ${bustW + 10} ${90}`
+    : `M ${bustW} ${-10} Q ${bustW + 26} ${40} ${waistW + 18} ${80}`;
+  const handOnWaist = pose === 0;
+
   return (
-    <svg viewBox="0 0 400 540" className="w-full h-full block" preserveAspectRatio="xMidYMid slice">
+    <svg viewBox="0 0 400 560" className="w-full h-full block" preserveAspectRatio="xMidYMid meet">
       <defs>
         <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={scene[0]} />
           <stop offset="55%" stopColor={scene[1]} />
           <stop offset="100%" stopColor={scene[2]} />
         </linearGradient>
-        <radialGradient id={`${id}-vignette`} cx="50%" cy="40%" r="75%">
+        <radialGradient id={`${id}-vignette`} cx="50%" cy="45%" r="80%">
           <stop offset="60%" stopColor="rgba(0,0,0,0)" />
           <stop offset="100%" stopColor="rgba(0,0,0,0.55)" />
         </radialGradient>
@@ -73,119 +81,119 @@ export function InfluencerAvatar({ config, animated = true }: Props) {
       </defs>
 
       {/* Scene background */}
-      <rect width="400" height="540" fill={`url(#${id}-bg)`} />
-      {/* soft bokeh dots */}
+      <rect width="400" height="560" fill={`url(#${id}-bg)`} />
       {Array.from({ length: 14 }).map((_, i) => (
-        <circle key={i} cx={(i * 73) % 400} cy={(i * 41) % 540} r={6 + (i % 4) * 2}
+        <circle key={i} cx={(i * 73) % 400} cy={(i * 41) % 560} r={6 + (i % 4) * 2}
           fill="white" opacity={0.06 + ((i * 7) % 8) / 100} />
       ))}
 
-      {/* Figure group — scales with height, breathing animation */}
-      <g transform={`translate(200 285) scale(${heightScale * bm})`} className={animated ? "animate-breathe" : ""} style={{ transformOrigin: "200px 285px" }}>
+      {/* Figure group — moved up so hips fit on canvas */}
+      <g transform={`translate(200 245) scale(${heightScale * bm})`} className={animated ? "animate-breathe" : ""} style={{ transformOrigin: "200px 245px" }}>
         {/* Neck */}
-        <path d={`M -18 -55 Q -18 -30 -22 -10 L 22 -10 Q 18 -30 18 -55 Z`} fill={`url(#${id}-skin)`} />
-        {/* Shoulders / torso */}
+        <path d={`M -16 -52 Q -16 -28 -20 -8 L 20 -8 Q 16 -28 16 -52 Z`} fill={`url(#${id}-skin)`} />
+        {/* Torso */}
         <path d={`
-          M ${-bustW} ${-15}
-          Q ${-bustW - 6} ${30} ${-waistW} ${70}
-          Q 0 ${78} ${waistW} ${70}
-          Q ${bustW + 6} ${30} ${bustW} ${-15}
-          Q 0 ${-25} ${-bustW} ${-15} Z`}
+          M ${-bustW} ${-12}
+          Q ${-bustW - 6} ${28} ${-waistW} ${66}
+          Q 0 ${74} ${waistW} ${66}
+          Q ${bustW + 6} ${28} ${bustW} ${-12}
+          Q 0 ${-22} ${-bustW} ${-12} Z`}
           fill={`url(#${id}-outfit)`} />
-        {/* Bust highlight */}
-        <ellipse cx={-bustW * 0.45} cy={5} rx={bustW * 0.32} ry={14} fill={shade(skin, 0.1)} opacity="0.18" />
-        <ellipse cx={bustW * 0.45} cy={5} rx={bustW * 0.32} ry={14} fill={shade(skin, 0.1)} opacity="0.18" />
-        {/* Hips/skirt */}
+        {/* Bust soft highlight */}
+        <ellipse cx={-bustW * 0.45} cy={5} rx={bustW * 0.32} ry={12} fill={shade(skin, 0.1)} opacity="0.18" />
+        <ellipse cx={bustW * 0.45} cy={5} rx={bustW * 0.32} ry={12} fill={shade(skin, 0.1)} opacity="0.18" />
+        {/* Hips / skirt — full silhouette through to thighs */}
         <path d={`
-          M ${-waistW} ${68}
-          Q ${-hipsW - 4} ${130} ${-hipsW + 4} ${190}
-          L ${hipsW - 4} ${190}
-          Q ${hipsW + 4} ${130} ${waistW} ${68} Z`}
-          fill={`url(#${id}-outfit)`} opacity="0.92" />
-        {/* Arm (one resting at waist — "hand on waist") */}
-        <path d={`M ${-bustW} ${-10} Q ${-bustW - 30} ${50} ${-waistW - 10} ${78}`}
-          stroke={`url(#${id}-skin)`} strokeWidth="14" fill="none" strokeLinecap="round" />
-        <path d={`M ${bustW} ${-10} Q ${bustW + 26} ${40} ${waistW + 18} ${78}`}
-          stroke={`url(#${id}-skin)`} strokeWidth="14" fill="none" strokeLinecap="round" />
-        {/* hand on waist */}
-        <ellipse cx={waistW + 16} cy={76} rx={9} ry={7} fill={skin} />
+          M ${-waistW} ${64}
+          Q ${-hipsW - 6} ${130} ${-hipsW + 2} ${220}
+          L ${hipsW - 2} ${220}
+          Q ${hipsW + 6} ${130} ${waistW} ${64} Z`}
+          fill={`url(#${id}-outfit)`} opacity="0.94" />
+        {/* Thigh hint */}
+        <path d={`M ${-hipsW + 2} ${220} Q -2 ${236} ${hipsW - 2} ${220} L ${hipsW - 14} ${258} Q 0 ${266} ${-hipsW + 14} ${258} Z`}
+          fill={`url(#${id}-skin)`} opacity="0.85" />
 
-        {/* NSFW-aware outfit accent line */}
-        <path d={`M ${-bustW + 6} ${topY - 285} Q 0 ${topY + topH - 285 + 6} ${bustW - 6} ${topY - 285}`}
+        {/* Arms (pose-aware) */}
+        <path d={leftArm} stroke={`url(#${id}-skin)`} strokeWidth="13" fill="none" strokeLinecap="round" />
+        <path d={rightArm} stroke={`url(#${id}-skin)`} strokeWidth="13" fill="none" strokeLinecap="round" />
+        {handOnWaist && <ellipse cx={waistW + 16} cy={78} rx={9} ry={7} fill={skin} />}
+        {pose === 1 && <ellipse cx={-bustW - 18} cy={-102} rx={8} ry={9} fill={skin} />}
+
+        {/* Outfit accent */}
+        <path d={`M ${-bustW + 6} ${topY - 245} Q 0 ${topY + topH - 245 + 6} ${bustW - 6} ${topY - 245}`}
           stroke="#d4a854" strokeWidth="1.2" fill="none" opacity="0.55" />
       </g>
 
-      {/* Head group — slight sway for life */}
-      <g transform={`translate(200 165)`} className={animated ? "animate-sway" : ""} style={{ transformOrigin: "200px 165px" }}>
-        {/* Hair back layer */}
-        {hairLong && (
-          <path d={`M -64 -10 Q -88 ${ponytail ? 60 : 130} ${ponytail ? -30 : -50} ${ponytail ? 180 : 200}
-                     L ${ponytail ? 30 : 50} ${ponytail ? 180 : 200} Q 88 ${ponytail ? 60 : 130} 64 -10 Z`}
-            fill={`url(#${id}-hair)`} opacity="0.95" />
-        )}
-        {hairMed && (
-          <path d="M -62 -8 Q -78 70 -40 90 L 40 90 Q 78 70 62 -8 Z" fill={`url(#${id}-hair)`} />
-        )}
+      {/* Head group */}
+      <g transform={`translate(200 145) rotate(${headTilt})`} className={animated ? "animate-sway" : ""} style={{ transformOrigin: "200px 145px" }}>
+        <g transform={`scale(${headTurn} 1)`}>
+          {/* Hair back */}
+          {hairLong && (
+            <path d={`M -60 -10 Q -84 ${ponytail ? 60 : 130} ${ponytail ? -28 : -48} ${ponytail ? 170 : 200}
+                       L ${ponytail ? 28 : 48} ${ponytail ? 170 : 200} Q 84 ${ponytail ? 60 : 130} 60 -10 Z`}
+              fill={`url(#${id}-hair)`} opacity="0.95" />
+          )}
+          {hairMed && (
+            <path d="M -58 -8 Q -74 70 -38 88 L 38 88 Q 74 70 58 -8 Z" fill={`url(#${id}-hair)`} />
+          )}
 
-        {/* Face shape */}
-        <ellipse cx={0} cy={0} rx={52} ry={64} fill={`url(#${id}-skin)`} />
-        {/* Cheek blush */}
-        <ellipse cx={-cheekR} cy={18} rx={12} ry={7} fill="#e89bb6" opacity="0.18" filter={`url(#${id}-soft)`} />
-        <ellipse cx={cheekR} cy={18} rx={12} ry={7} fill="#e89bb6" opacity="0.18" filter={`url(#${id}-soft)`} />
+          {/* Face */}
+          <ellipse cx={0} cy={0} rx={48} ry={60} fill={`url(#${id}-skin)`} />
+          <ellipse cx={-cheekR} cy={18} rx={11} ry={7} fill="#e89bb6" opacity="0.18" filter={`url(#${id}-soft)`} />
+          <ellipse cx={cheekR} cy={18} rx={11} ry={7} fill="#e89bb6" opacity="0.18" filter={`url(#${id}-soft)`} />
 
-        {/* Eyebrows */}
-        <path d="M -28 -16 Q -18 -22 -8 -16" stroke={shade(hair, -0.3)} strokeWidth="3" fill="none" strokeLinecap="round" />
-        <path d="M 8 -16 Q 18 -22 28 -16" stroke={shade(hair, -0.3)} strokeWidth="3" fill="none" strokeLinecap="round" />
+          {/* Brows */}
+          <path d="M -26 -14 Q -16 -20 -6 -14" stroke={shade(hair, -0.3)} strokeWidth="3" fill="none" strokeLinecap="round" />
+          <path d="M 6 -14 Q 16 -20 26 -14" stroke={shade(hair, -0.3)} strokeWidth="3" fill="none" strokeLinecap="round" />
 
-        {/* Eyes */}
-        <ellipse cx={-18} cy={-2} rx={7} ry={4} fill="white" />
-        <ellipse cx={18} cy={-2} rx={7} ry={4} fill="white" />
-        <circle cx={-18} cy={-2} r={3.2} fill={eye} />
-        <circle cx={18} cy={-2} r={3.2} fill={eye} />
-        <circle cx={-17} cy={-3} r={1} fill="white" />
-        <circle cx={19} cy={-3} r={1} fill="white" />
-        {/* Lashes */}
-        <path d="M -25 -4 Q -18 -7 -11 -4" stroke="#1a1110" strokeWidth="1.4" fill="none" strokeLinecap="round" />
-        <path d="M 11 -4 Q 18 -7 25 -4" stroke="#1a1110" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          {/* Eyes */}
+          <ellipse cx={-16} cy={0} rx={6.5} ry={3.8} fill="white" />
+          <ellipse cx={16} cy={0} rx={6.5} ry={3.8} fill="white" />
+          <circle cx={-16} cy={0} r={3} fill={eye} />
+          <circle cx={16} cy={0} r={3} fill={eye} />
+          <circle cx={-15} cy={-1} r={0.9} fill="white" />
+          <circle cx={17} cy={-1} r={0.9} fill="white" />
+          <path d="M -23 -2 Q -16 -5 -9 -2" stroke="#1a1110" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+          <path d="M 9 -2 Q 16 -5 23 -2" stroke="#1a1110" strokeWidth="1.3" fill="none" strokeLinecap="round" />
 
-        {/* Nose */}
-        <path d="M 0 6 Q -4 18 0 22 Q 4 18 0 6" stroke={skinDark} strokeWidth="1.2" fill="none" opacity="0.6" />
+          {/* Nose */}
+          <path d="M 0 8 Q -3 18 0 22 Q 3 18 0 8" stroke={skinDark} strokeWidth="1.1" fill="none" opacity="0.6" />
 
-        {/* Lips */}
-        <path d={`M ${-lipW / 2} 36 Q -4 32 0 36 Q 4 32 ${lipW / 2} 36 Q 4 44 0 42 Q -4 44 ${-lipW / 2} 36 Z`} fill={lips} />
-        <path d={`M ${-lipW / 2} 36 Q 0 38 ${lipW / 2} 36`} stroke={shade(lips, -0.25)} strokeWidth="0.6" fill="none" />
+          {/* Lips */}
+          <path d={`M ${-lipW / 2} 34 Q -4 30 0 34 Q 4 30 ${lipW / 2} 34 Q 4 42 0 40 Q -4 42 ${-lipW / 2} 34 Z`} fill={lips} />
+          <path d={`M ${-lipW / 2} 34 Q 0 36 ${lipW / 2} 34`} stroke={shade(lips, -0.25)} strokeWidth="0.6" fill="none" />
 
-        {/* Hair front */}
-        {!bun && !hairShort && (
-          <path d="M -52 -42 Q -28 -68 0 -58 Q 30 -68 52 -42 Q 46 -28 28 -32 Q 10 -38 0 -32 Q -10 -38 -28 -32 Q -46 -28 -52 -42 Z"
-            fill={`url(#${id}-hair)`} />
-        )}
-        {hairShort && (
-          <path d="M -54 -30 Q -30 -68 0 -60 Q 30 -68 54 -30 Q 50 -10 30 -14 L -30 -14 Q -50 -10 -54 -30 Z"
-            fill={`url(#${id}-hair)`} />
-        )}
-        {bun && (
-          <>
-            <ellipse cx={0} cy={-68} rx={22} ry={18} fill={`url(#${id}-hair)`} />
-            <path d="M -50 -30 Q -28 -54 0 -50 Q 28 -54 50 -30 Q 48 -16 30 -18 L -30 -18 Q -48 -16 -50 -30 Z"
+          {/* Hair front */}
+          {!bun && !hairShort && (
+            <path d="M -50 -40 Q -26 -64 0 -56 Q 28 -64 50 -40 Q 44 -28 26 -32 Q 8 -36 0 -32 Q -8 -36 -26 -32 Q -44 -28 -50 -40 Z"
               fill={`url(#${id}-hair)`} />
-          </>
-        )}
-        {/* Wavy strands accent */}
-        {hairWavy && hairLong && (
-          <>
-            <path d="M -64 20 Q -76 60 -58 100" stroke={shade(hair, 0.1)} strokeWidth="2" fill="none" opacity="0.5" />
-            <path d="M 64 20 Q 76 60 58 100" stroke={shade(hair, 0.1)} strokeWidth="2" fill="none" opacity="0.5" />
-          </>
-        )}
+          )}
+          {hairShort && (
+            <path d="M -52 -28 Q -28 -64 0 -56 Q 28 -64 52 -28 Q 48 -10 28 -14 L -28 -14 Q -48 -10 -52 -28 Z"
+              fill={`url(#${id}-hair)`} />
+          )}
+          {bun && (
+            <>
+              <ellipse cx={0} cy={-64} rx={20} ry={16} fill={`url(#${id}-hair)`} />
+              <path d="M -48 -28 Q -26 -50 0 -46 Q 26 -50 48 -28 Q 46 -16 28 -18 L -28 -18 Q -46 -16 -48 -28 Z"
+                fill={`url(#${id}-hair)`} />
+            </>
+          )}
+          {hairWavy && hairLong && (
+            <>
+              <path d="M -60 20 Q -72 60 -54 100" stroke={shade(hair, 0.1)} strokeWidth="2" fill="none" opacity="0.5" />
+              <path d="M 60 20 Q 72 60 54 100" stroke={shade(hair, 0.1)} strokeWidth="2" fill="none" opacity="0.5" />
+            </>
+          )}
 
-        {/* Earrings — small luxe accent */}
-        <circle cx={-50} cy={20} r={2.4} fill="#e6c178" />
-        <circle cx={50} cy={20} r={2.4} fill="#e6c178" />
+          {/* Earrings */}
+          <circle cx={-46} cy={20} r={2.4} fill="#e6c178" />
+          <circle cx={46} cy={20} r={2.4} fill="#e6c178" />
+        </g>
       </g>
 
       {/* Vignette */}
-      <rect width="400" height="540" fill={`url(#${id}-vignette)`} pointerEvents="none" />
+      <rect width="400" height="560" fill={`url(#${id}-vignette)`} pointerEvents="none" />
     </svg>
   );
 }

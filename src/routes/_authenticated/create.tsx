@@ -25,6 +25,8 @@ function CreatePage() {
   const navigate = useNavigate();
   const [config, setConfig] = useState<InfluencerConfig>(DEFAULT_CONFIG);
   const [renderedConfig, setRenderedConfig] = useState<InfluencerConfig>(DEFAULT_CONFIG);
+  const [pose, setPose] = useState(0);
+  const [renderedPose, setRenderedPose] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [version, setVersion] = useState(0);
@@ -36,11 +38,15 @@ function CreatePage() {
     setGenerating(true);
     debounceRef.current = setTimeout(() => {
       setRenderedConfig(config);
+      setRenderedPose(pose);
       setVersion((v) => v + 1);
       setGenerating(false);
     }, 550);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [config]);
+  }, [config, pose]);
+
+  const cyclePose = () => setPose((p) => (p + 1) % 3);
+
 
   const update = <K extends keyof InfluencerConfig>(key: K, value: InfluencerConfig[K]) =>
     setConfig((c) => ({ ...c, [key]: value }));
@@ -161,7 +167,7 @@ function CreatePage() {
           <div className="relative rounded-xl overflow-hidden aspect-[3/4] w-full bg-secondary/40">
             {/* Render two layers for crossfade between renders */}
             <div key={version} className="absolute inset-0 animate-fade-up">
-              <InfluencerAvatar config={renderedConfig} animated />
+              <InfluencerAvatar config={renderedConfig} pose={renderedPose} animated />
             </div>
 
             {/* Generating overlay */}
@@ -185,7 +191,19 @@ function CreatePage() {
             {config.nsfw && (
               <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-accent/80 text-accent-foreground text-[10px] uppercase tracking-[0.2em] font-medium">NSFW</div>
             )}
+
+            {/* Regenerate / pose cycle */}
+            <button
+              type="button"
+              onClick={cyclePose}
+              className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card text-xs text-foreground hover:text-primary hover-lift transition pointer-events-auto"
+              aria-label="Regenerate pose"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Pose {pose + 1}/3
+            </button>
           </div>
+
 
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="min-w-0">
