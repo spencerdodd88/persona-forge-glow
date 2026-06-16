@@ -163,15 +163,22 @@ function CreatePage() {
         </div>
 
         {/* RIGHT: large live preview */}
-        <div className="glass-card rounded-2xl p-4 md:p-6 sticky top-20 self-start">
-          <div className="relative rounded-xl overflow-hidden aspect-[3/4] w-full bg-secondary/40">
-            {/* Render two layers for crossfade between renders */}
+        <div className="sticky top-20 self-start flex flex-col items-center">
+          <div
+            className="relative w-full max-w-[560px] aspect-[4/5] rounded-3xl overflow-hidden bg-secondary/40
+                       ring-1 ring-primary/25
+                       shadow-[0_30px_80px_-30px_rgba(212,168,84,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+          >
+            {/* Decorative inner gold frame */}
+            <div className="pointer-events-none absolute inset-2 rounded-[1.4rem] border border-primary/20 z-10" />
+
+            {/* Avatar layer */}
             <div key={version} className="absolute inset-0 animate-fade-up">
               <InfluencerAvatar config={renderedConfig} pose={renderedPose} animated />
             </div>
 
             {/* Generating overlay */}
-            <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${generating ? "opacity-100" : "opacity-0"}`}>
+            <div className={`absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${generating ? "opacity-100" : "opacity-0"}`}>
               <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px]" />
               <div className="relative flex flex-col items-center gap-3 px-5 py-3 rounded-xl glass-card">
                 <div className="flex items-center gap-2 text-primary">
@@ -184,39 +191,40 @@ function CreatePage() {
               </div>
             </div>
 
-            {/* Premium chip */}
-            <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full glass-card text-[10px] uppercase tracking-[0.2em] text-primary">
+            <div className="absolute top-4 left-4 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full glass-card text-[10px] uppercase tracking-[0.2em] text-primary">
               <Sparkles className="w-3 h-3" /> Preview
             </div>
             {config.nsfw && (
-              <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-accent/80 text-accent-foreground text-[10px] uppercase tracking-[0.2em] font-medium">NSFW</div>
+              <div className="absolute top-4 right-4 z-20 px-2.5 py-1 rounded-full bg-accent/80 text-accent-foreground text-[10px] uppercase tracking-[0.2em] font-medium">NSFW</div>
             )}
 
-            {/* Regenerate / pose cycle */}
             <button
               type="button"
               onClick={cyclePose}
-              className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card text-xs text-foreground hover:text-primary hover-lift transition pointer-events-auto"
+              className="absolute bottom-4 right-4 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card text-xs text-foreground hover:text-primary hover-lift transition pointer-events-auto"
               aria-label="Regenerate pose"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Pose {pose + 1}/3
             </button>
+
+            <div className="absolute bottom-4 left-4 z-20 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/80">
+              v{version}
+            </div>
           </div>
 
-
-          <div className="mt-4 flex items-start justify-between gap-4">
+          <div className="mt-5 w-full max-w-[560px] flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="font-display text-2xl truncate">{config.name || "Unnamed"}</div>
               <div className="text-sm text-muted-foreground mt-0.5 truncate">{summary}</div>
             </div>
-            <div className="text-xs text-muted-foreground text-right shrink-0">
-              <div className="uppercase tracking-[0.2em]">Live</div>
-              <div className="mt-1">v{version}</div>
+            <div className="text-xs text-muted-foreground text-right shrink-0 uppercase tracking-[0.2em] mt-1">
+              Live
             </div>
           </div>
-          {config.bio && <p className="mt-3 text-sm text-muted-foreground italic">"{config.bio}"</p>}
+          {config.bio && <p className="mt-3 w-full max-w-[560px] text-sm text-muted-foreground italic">"{config.bio}"</p>}
         </div>
+
       </div>
     </div>
   );
