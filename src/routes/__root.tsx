@@ -68,7 +68,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "GenFluence — Create & Monetize AI Influencers" },
       { name: "description", content: "GenFluence is the premium platform to design, manage, and monetize ultra-realistic AI influencers." },
-      { name: "theme-color", content: "#14111c" },
+      { name: "theme-color", content: "#f8f5f0" },
       { property: "og:title", content: "GenFluence — Create & Monetize AI Influencers" },
       { property: "og:description", content: "Design, manage, and monetize ultra-realistic AI influencers." },
       { property: "og:type", content: "website" },
@@ -77,7 +77,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&display=swap" },
       { rel: "stylesheet", href: appCss },
     ],
   }),
@@ -89,7 +89,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head><HeadContent /></head>
       <body>
         {children}
@@ -115,7 +115,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
-      <Toaster position="top-right" theme="dark" />
+      <Toaster position="top-right" theme="light" />
     </QueryClientProvider>
   );
 }
