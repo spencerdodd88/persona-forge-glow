@@ -31,7 +31,7 @@ function Dashboard() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Welcome back</p>
-          <h1 className="font-display text-4xl md:text-5xl mt-1">Good evening, <span className="text-gradient-gold">{name}</span></h1>
+          <h1 className="font-display text-4xl md:text-5xl mt-1">Welcome back, <span className="text-gradient-gold">{name}</span></h1>
         </div>
         <Link to="/create" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-luxe text-primary-foreground font-medium hover-lift">
           <Sparkles className="w-4 h-4" /> Create new influencer

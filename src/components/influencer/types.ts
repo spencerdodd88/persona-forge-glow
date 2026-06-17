@@ -85,5 +85,5 @@ export const DEFAULT_CONFIG: InfluencerConfig = {
   hips: 95,
   body_type: "Athletic",
   nsfw: false,
-  scene_preset: "Coffee Shop",
+  scene_preset: "Garden Party",
 };

@@ -165,12 +165,12 @@ function CreatePage() {
         {/* RIGHT: large live preview */}
         <div className="sticky top-20 self-start flex flex-col items-center">
           <div
-            className="relative w-full max-w-[560px] aspect-[4/5] rounded-3xl overflow-hidden bg-secondary/40
-                       ring-1 ring-primary/25
-                       shadow-[0_30px_80px_-30px_rgba(212,168,84,0.4),inset_0_1px_0_0_rgba(255,255,255,0.05)]"
+            className="relative w-full max-w-[580px] aspect-[4/5] rounded-[2rem] overflow-hidden bg-card
+                       ring-1 ring-border
+                       shadow-[0_40px_90px_-35px_rgba(70,55,30,0.35),0_8px_30px_-12px_rgba(70,55,30,0.18)]"
           >
             {/* Decorative inner gold frame */}
-            <div className="pointer-events-none absolute inset-2 rounded-[1.4rem] border border-primary/20 z-10" />
+            <div className="pointer-events-none absolute inset-3 rounded-[1.6rem] border border-primary/30 z-10" />
 
             {/* Avatar layer */}
             <div key={version} className="absolute inset-0 animate-fade-up">
