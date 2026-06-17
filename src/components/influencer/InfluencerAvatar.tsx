@@ -95,8 +95,8 @@ export function InfluencerAvatar({ config, animated = true, pose = 0 }: Props) {
           <stop offset="100%" stopColor={shade(hair, -0.2)} />
         </linearGradient>
         <linearGradient id={`${id}-outfit`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1a1018" />
-          <stop offset="100%" stopColor="#3a1a30" />
+          <stop offset="0%" stopColor="#1f2a3a" />
+          <stop offset="100%" stopColor="#0e1422" />
         </linearGradient>
         <filter id={`${id}-soft`}><feGaussianBlur stdDeviation="0.6" /></filter>
       </defs>
