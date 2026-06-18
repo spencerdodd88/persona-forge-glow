@@ -1,8 +1,10 @@
-export type BodyType = "Slim" | "Athletic" | "Curvy" | "Voluptuous";
+export type BodyType = "Slim" | "Athletic" | "Curvy";
+export type GenderPresentation = "Female" | "Male" | "Non-binary";
 
 export type InfluencerConfig = {
   name: string;
   bio: string;
+  gender_presentation?: GenderPresentation;
   age: number;
   ethnicity: string;
   skin_tone: string;
@@ -25,7 +27,53 @@ export const HAIR_COLORS = ["Black", "Brown", "Blonde", "Auburn", "Red", "Platin
 export const HAIR_LENGTHS = ["Pixie", "Short", "Medium", "Long", "Extra Long"];
 export const HAIR_STYLES = ["Straight", "Wavy", "Curly", "Braided", "Ponytail", "Bun"];
 export const EYE_COLORS = ["Brown", "Hazel", "Green", "Blue", "Grey", "Amber"];
-export const BODY_TYPES: BodyType[] = ["Slim", "Athletic", "Curvy", "Voluptuous"];
+export const BODY_TYPES: BodyType[] = ["Slim", "Athletic", "Curvy"];
+export const GENDER_OPTIONS: GenderPresentation[] = ["Female", "Male", "Non-binary"];
+
+export function chestLabel(gender: GenderPresentation | undefined): string {
+  if (gender === "Male") return "Chest";
+  if (gender === "Non-binary") return "Bust / Chest";
+  return "Bust";
+}
+
+export function buildCharacterSummary(c: InfluencerConfig): string {
+  const gender = c.gender_presentation ?? "Female";
+  return [
+    `${c.age}y`,
+    gender,
+    c.ethnicity,
+    `${c.hair_color} ${c.hair_length.toLowerCase()} hair`,
+    c.body_type.toLowerCase(),
+    c.scene_preset,
+  ].join(" · ");
+}
+
+/** Stable seed per character configuration — keeps previews consistent for the same settings. */
+export function configPreviewSeed(c: InfluencerConfig, pose: number): number {
+  const key = JSON.stringify({
+    gender_presentation: c.gender_presentation ?? "Female",
+    age: c.age,
+    ethnicity: c.ethnicity,
+    skin_tone: c.skin_tone,
+    hair_color: c.hair_color,
+    hair_length: c.hair_length,
+    hair_style: c.hair_style,
+    eye_color: c.eye_color,
+    height_cm: c.height_cm,
+    bust: c.bust,
+    waist: c.waist,
+    hips: c.hips,
+    body_type: c.body_type,
+    scene_preset: c.scene_preset,
+    nsfw: c.nsfw,
+    pose,
+  });
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (Math.imul(31, hash) + key.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % 2_147_483_647;
+}
 export const SCENES = ["Beach Day", "Luxury Bedroom", "Gym Selfie", "Night Out", "Yacht", "Coffee Shop", "Penthouse", "Garden Party"];
 
 // Color tokens for SVG
@@ -70,8 +118,9 @@ export const SCENE_BG: Record<string, string[]> = {
 };
 
 export const DEFAULT_CONFIG: InfluencerConfig = {
-  name: "Aria",
+  name: "",
   bio: "",
+  gender_presentation: "Female",
   age: 24,
   ethnicity: "European",
   skin_tone: "Light",
@@ -83,7 +132,7 @@ export const DEFAULT_CONFIG: InfluencerConfig = {
   bust: 90,
   waist: 65,
   hips: 95,
-  body_type: "Athletic",
+  body_type: "Curvy",
   nsfw: false,
   scene_preset: "Garden Party",
 };

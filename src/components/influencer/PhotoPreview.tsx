@@ -36,22 +36,30 @@ const AUBURN_LENGTH_MAP: Record<string, string> = {
 /** Returns a photo URL if we have a matching shoot, else null (caller falls back to SVG). */
 export function resolvePhoto(config: InfluencerConfig): string | null {
   const isEuropean = config.ethnicity === "European";
-  const isCurvy = config.body_type === "Curvy" || config.body_type === "Voluptuous";
+  const isCurvy = config.body_type === "Curvy";
   if (!isEuropean || !isCurvy) return null;
 
   // Auburn has dedicated per-length shoots
   if (config.hair_color === "Auburn") {
-    return AUBURN_LENGTH_MAP[config.hair_length] ?? auburn.url;
+    return pickStaticUrl(AUBURN_LENGTH_MAP[config.hair_length] ?? auburn.url);
   }
 
-  return HAIR_MAP[config.hair_color] ?? null;
+  return pickStaticUrl(HAIR_MAP[config.hair_color] ?? null);
 }
 
-export function PhotoPreview({ url }: { url: string }) {
+/** Static shoots are hosted on Lovable's asset CDN — skip broken SPA fallbacks in local dev. */
+function pickStaticUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (import.meta.env.DEV && url.startsWith("/__l5e")) return null;
+  return url;
+}
+
+export function PhotoPreview({ url, onError }: { url: string; onError?: () => void }) {
   return (
     <img
       src={url}
       alt="Influencer preview"
+      onError={onError}
       className="absolute inset-0 w-full h-full object-cover object-top animate-breathe"
       draggable={false}
     />

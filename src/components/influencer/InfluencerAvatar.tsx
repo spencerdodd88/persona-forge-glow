@@ -28,12 +28,19 @@ export function InfluencerAvatar({ config, animated = true, pose = 0 }: Props) {
   const lips = useMemo(() => shade(skin, -0.35, true), [skin]);
   const scene = SCENE_BG[config.scene_preset] ?? SCENE_BG["Coffee Shop"];
 
+  const gender = config.gender_presentation ?? "Female";
+
   // Body widths (in viewBox units) driven by sliders
-  const bodyMul: Record<string, number> = { Slim: 0.92, Athletic: 1, Curvy: 1.08, Voluptuous: 1.16 };
-  const bm = bodyMul[config.body_type] ?? 1;
-  const bustW = lerp(34, 64, range(config.bust, 70, 120)) * bm;
-  const waistW = lerp(22, 46, range(config.waist, 55, 90)) * bm;
-  const hipsW = lerp(36, 68, range(config.hips, 75, 120)) * bm;
+  const bodyMul: Record<string, number> = { Slim: 0.92, Athletic: 1, Curvy: 1.08 };
+  const genderMul =
+    gender === "Male" ? { shoulder: 1.14, bust: 0.82, waist: 1.06, hips: 0.88 } :
+    gender === "Non-binary" ? { shoulder: 1.06, bust: 0.94, waist: 1.02, hips: 0.96 } :
+    { shoulder: 1, bust: 1, waist: 1, hips: 1 };
+  const bm = (bodyMul[config.body_type] ?? 1);
+  const bustW = lerp(34, 64, range(config.bust, 70, 120)) * bm * genderMul.bust;
+  const waistW = lerp(22, 46, range(config.waist, 55, 90)) * bm * genderMul.waist;
+  const hipsW = lerp(36, 68, range(config.hips, 75, 120)) * bm * genderMul.hips;
+  const shoulderSpread = bustW * genderMul.shoulder;
   // Height changes the vertical extent (longer torso + thighs)
   const heightT = range(config.height_cm, 150, 190);
   const torsoH = lerp(70, 86, heightT);
@@ -66,11 +73,11 @@ export function InfluencerAvatar({ config, animated = true, pose = 0 }: Props) {
   // Arms — absolute coords
   const armLeft = pose === 1
     // raised: hand near top-left of head
-    ? `M ${CX - bustW} ${shoulderY} Q ${CX - bustW - 38} ${shoulderY - 60} ${CX - bustW - 16} ${shoulderY - 110}`
-    : `M ${CX - bustW} ${shoulderY} Q ${CX - bustW - 28} ${shoulderY + 60} ${CX - waistW - 10} ${waistY + 6}`;
+    ? `M ${CX - shoulderSpread} ${shoulderY} Q ${CX - shoulderSpread - 38} ${shoulderY - 60} ${CX - shoulderSpread - 16} ${shoulderY - 110}`
+    : `M ${CX - shoulderSpread} ${shoulderY} Q ${CX - shoulderSpread - 28} ${shoulderY + 60} ${CX - waistW - 10} ${waistY + 6}`;
   const armRight = pose === 2
-    ? `M ${CX + bustW} ${shoulderY} Q ${CX + bustW + 34} ${shoulderY + 40} ${CX + bustW + 8} ${waistY + 22}`
-    : `M ${CX + bustW} ${shoulderY} Q ${CX + bustW + 26} ${shoulderY + 50} ${CX + waistW + 18} ${waistY + 6}`;
+    ? `M ${CX + shoulderSpread} ${shoulderY} Q ${CX + shoulderSpread + 34} ${shoulderY + 40} ${CX + shoulderSpread + 8} ${waistY + 22}`
+    : `M ${CX + shoulderSpread} ${shoulderY} Q ${CX + shoulderSpread + 26} ${shoulderY + 50} ${CX + waistW + 18} ${waistY + 6}`;
 
   const handOnWaist = pose === 0;
 
@@ -123,18 +130,22 @@ export function InfluencerAvatar({ config, animated = true, pose = 0 }: Props) {
 
         {/* Torso (outfit) */}
         <path
-          d={`M ${CX - bustW} ${shoulderY}
-              Q ${CX - bustW - 6} ${shoulderY + 40} ${CX - waistW} ${waistY}
+          d={`M ${CX - shoulderSpread} ${shoulderY}
+              Q ${CX - shoulderSpread - 6} ${shoulderY + 40} ${CX - waistW} ${waistY}
               Q ${CX} ${waistY + 8} ${CX + waistW} ${waistY}
-              Q ${CX + bustW + 6} ${shoulderY + 40} ${CX + bustW} ${shoulderY}
-              Q ${CX} ${shoulderY - 10} ${CX - bustW} ${shoulderY} Z`}
+              Q ${CX + shoulderSpread + 6} ${shoulderY + 40} ${CX + shoulderSpread} ${shoulderY}
+              Q ${CX} ${shoulderY - 10} ${CX - shoulderSpread} ${shoulderY} Z`}
           fill={`url(#${id}-outfit)`}
         />
         {/* Bust shading */}
-        <ellipse cx={CX - bustW * 0.45} cy={shoulderY + 18} rx={bustW * 0.32} ry={12} fill={shade(skin, 0.1)} opacity="0.18" />
-        <ellipse cx={CX + bustW * 0.45} cy={shoulderY + 18} rx={bustW * 0.32} ry={12} fill={shade(skin, 0.1)} opacity="0.18" />
+        {gender !== "Male" && (
+          <>
+            <ellipse cx={CX - bustW * 0.45} cy={shoulderY + 18} rx={bustW * 0.32} ry={12} fill={shade(skin, 0.1)} opacity="0.18" />
+            <ellipse cx={CX + bustW * 0.45} cy={shoulderY + 18} rx={bustW * 0.32} ry={12} fill={shade(skin, 0.1)} opacity="0.18" />
+          </>
+        )}
         {/* Subtle gold trim under bustline */}
-        <path d={`M ${CX - bustW + 6} ${shoulderY + 28} Q ${CX} ${shoulderY + 38} ${CX + bustW - 6} ${shoulderY + 28}`}
+        <path d={`M ${CX - shoulderSpread + 6} ${shoulderY + 28} Q ${CX} ${shoulderY + 38} ${CX + shoulderSpread - 6} ${shoulderY + 28}`}
           stroke="#d4a854" strokeWidth="1.1" fill="none" opacity="0.55" />
 
         {/* Hips & skirt */}
@@ -158,7 +169,7 @@ export function InfluencerAvatar({ config, animated = true, pose = 0 }: Props) {
         <path d={armLeft} stroke={`url(#${id}-skin)`} strokeWidth="13" fill="none" strokeLinecap="round" />
         <path d={armRight} stroke={`url(#${id}-skin)`} strokeWidth="13" fill="none" strokeLinecap="round" />
         {handOnWaist && <ellipse cx={CX + waistW + 16} cy={waistY + 6} rx={9} ry={7} fill={skin} />}
-        {pose === 1 && <ellipse cx={CX - bustW - 16} cy={shoulderY - 112} rx={8} ry={9} fill={skin} />}
+        {pose === 1 && <ellipse cx={CX - shoulderSpread - 16} cy={shoulderY - 112} rx={8} ry={9} fill={skin} />}
       </g>
 
       {/* ============ HEAD (gentle sway) ============ */}

@@ -1,46 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { runFluxPreview } from "@/lib/replicate.server";
 
 type Body = {
   prompt: string;
+  seed?: number;
+  nsfw?: boolean;
 };
 
+/** JSON fallback route for direct API testing / non-server-fn clients. */
 export const Route = createFileRoute("/api/generate-preview")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const key = process.env.LOVABLE_API_KEY;
-        if (!key) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
-        const { prompt } = (await request.json()) as Body;
-        if (!prompt) return new Response("Missing prompt", { status: 400 });
-
-        const upstream = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${key}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-image-2",
-            prompt,
-            size: "1024x1024",
-            quality: "low",
-            n: 1,
-            stream: true,
-            partial_images: 2,
-          }),
-        });
-
-        if (!upstream.ok || !upstream.body) {
-          const text = await upstream.text().catch(() => "");
-          return new Response(text || "Upstream error", { status: upstream.status });
+        let body: Body;
+        try {
+          body = (await request.json()) as Body;
+        } catch {
+          return Response.json({ error: "Invalid JSON body" }, { status: 400 });
         }
 
-        return new Response(upstream.body, {
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-          },
-        });
+        const { prompt, seed, nsfw } = body;
+        if (!prompt?.trim()) {
+          return Response.json({ error: "Missing prompt" }, { status: 400 });
+        }
+
+        try {
+          const url = await runFluxPreview(prompt, { seed, nsfw }, request.signal);
+          return Response.json({ url });
+        } catch (err) {
+          if ((err as Error).name === "AbortError") {
+            return Response.json({ error: "Aborted" }, { status: 499 });
+          }
+          const message = err instanceof Error ? err.message : "Generation failed";
+          console.error("[generate-preview]", message);
+          return Response.json({ error: message }, { status: 500 });
+        }
       },
     },
   },
