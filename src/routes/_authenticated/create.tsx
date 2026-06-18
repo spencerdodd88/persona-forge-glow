@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfluencerAvatar } from "@/components/influencer/InfluencerAvatar";
+import { PhotoPreview, resolvePhoto } from "@/components/influencer/PhotoPreview";
 import {
   DEFAULT_CONFIG, type InfluencerConfig,
   ETHNICITIES, SKIN_TONES, HAIR_COLORS, HAIR_LENGTHS, HAIR_STYLES, EYE_COLORS, BODY_TYPES, SCENES,
@@ -172,9 +173,14 @@ function CreatePage() {
             {/* Decorative inner gold frame */}
             <div className="pointer-events-none absolute inset-3 rounded-[1.6rem] border border-primary/30 z-10" />
 
-            {/* Avatar layer */}
+            {/* Avatar layer — photo when available, SVG fallback otherwise */}
             <div key={version} className="absolute inset-0 animate-fade-up">
-              <InfluencerAvatar config={renderedConfig} pose={renderedPose} animated />
+              {(() => {
+                const photo = resolvePhoto(renderedConfig);
+                return photo
+                  ? <PhotoPreview url={photo} />
+                  : <InfluencerAvatar config={renderedConfig} pose={renderedPose} animated />;
+              })()}
             </div>
 
             {/* Generating overlay */}
