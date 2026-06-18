@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfluencerAvatar } from "@/components/influencer/InfluencerAvatar";
 import { PhotoPreview, resolvePhoto } from "@/components/influencer/PhotoPreview";
+import { streamImage } from "@/lib/streamImage";
+import { buildInfluencerPrompt } from "@/lib/influencerPrompt";
 import {
   DEFAULT_CONFIG, type InfluencerConfig,
   ETHNICITIES, SKIN_TONES, HAIR_COLORS, HAIR_LENGTHS, HAIR_STYLES, EYE_COLORS, BODY_TYPES, SCENES,
@@ -31,18 +33,44 @@ function CreatePage() {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [version, setVersion] = useState(0);
+  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiFinal, setAiFinal] = useState(false);
+  const [aiFailed, setAiFailed] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Debounced "regeneration" — swap preview after a short pause for premium feel
+  // Debounced real-time AI image generation
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setGenerating(true);
-    debounceRef.current = setTimeout(() => {
+    debounceRef.current = setTimeout(async () => {
+      abortRef.current?.abort();
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+
       setRenderedConfig(config);
       setRenderedPose(pose);
-      setVersion((v) => v + 1);
-      setGenerating(false);
-    }, 550);
+      setAiFinal(false);
+      setAiFailed(false);
+
+      const prompt = buildInfluencerPrompt(config) + ` Pose variation ${pose + 1}.`;
+      try {
+        await streamImage("/api/generate-preview", { prompt }, (dataUrl, isFinal) => {
+          setAiImage(dataUrl);
+          if (isFinal) setAiFinal(true);
+        }, ctrl.signal);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          console.error("AI preview failed", err);
+          setAiFailed(true);
+        }
+      } finally {
+        if (!ctrl.signal.aborted) {
+          setVersion((v) => v + 1);
+          setGenerating(false);
+        }
+      }
+    }, 700);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [config, pose]);
 
