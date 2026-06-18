@@ -60,7 +60,7 @@ function buildModelInput(prompt: string, opts: FluxPreviewOptions) {
   const input: Record<string, unknown> = {
     ...base,
     num_inference_steps: 28,
-    guidance: 4.5,
+    guidance: 6,
     megapixels: "1",
   };
 

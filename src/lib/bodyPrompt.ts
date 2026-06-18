@@ -14,6 +14,8 @@ function bustDescription(c: InfluencerConfig): string {
   const gender = c.gender_presentation ?? "Female";
 
   if (gender === "Male") {
+    if (t < 0.12) return "REQUIRED: very flat narrow chest, no pec definition, lean flat torso";
+    if (t > 0.88) return "REQUIRED: extremely broad muscular chest, massive pecs, bodybuilder torso";
     return pickLabel(t, [
       "flat narrow chest, lean torso",
       "slim chest, lightly defined pecs",
@@ -22,6 +24,14 @@ function bustDescription(c: InfluencerConfig): string {
       "very broad muscular chest, thick torso",
       "extremely broad powerful chest, bodybuilder upper body",
     ]);
+  }
+
+  // Extremes use imperative language — diffusion models respond to strong directives
+  if (t < 0.12) {
+    return "REQUIRED: completely flat chest, AA cup, no bust volume, no cleavage, flat chested, androgynous flat torso";
+  }
+  if (t > 0.88) {
+    return "REQUIRED: extremely massive bust, huge breasts dominate the frame, very large heavy bust, prominent deep cleavage";
   }
 
   return pickLabel(t, [
@@ -36,6 +46,8 @@ function bustDescription(c: InfluencerConfig): string {
 
 function waistDescription(c: InfluencerConfig): string {
   const t = clamp01(c.waist, 55, 90);
+  if (t < 0.12) return "REQUIRED: extremely narrow wasp waist, tiny cinched midsection";
+  if (t > 0.88) return "REQUIRED: wide thick waist, no waist taper, straight blocky midsection";
   return pickLabel(t, [
     "extremely narrow cinched waist, tiny midsection",
     "very slim waist, defined hourglass taper",
@@ -48,6 +60,8 @@ function waistDescription(c: InfluencerConfig): string {
 
 function hipsDescription(c: InfluencerConfig): string {
   const t = clamp01(c.hips, 75, 120);
+  if (t < 0.12) return "REQUIRED: very narrow straight hips, boyish hip line, no hip curve";
+  if (t > 0.88) return "REQUIRED: extremely wide hips, massive lower body, very thick thighs";
   return pickLabel(t, [
     "very narrow hips, straight hip line, minimal curve",
     "slim hips, narrow lower body",
@@ -69,39 +83,51 @@ function heightDescription(c: InfluencerConfig): string {
   ]);
 }
 
+/** Frame/silhouette only — bust/waist/hips come from sliders (no conflicting "full bust" here). */
 const BODY_TYPE_BLOCK: Record<BodyType, string> = {
   Slim:
-    "BODY TYPE: extremely slim ectomorph frame, thin angular shoulders, flat stomach, narrow hips, minimal body fat, delicate fashion-model thin silhouette, visible collarbones, no curves",
+    "Overall frame: extremely slim ectomorph, thin shoulders, flat stomach, minimal body fat, fashion-model thin silhouette, visible collarbones",
   Athletic:
-    "BODY TYPE: athletic mesomorph physique, toned visible muscle definition, firm abs, strong shoulders, fit gym-trained body, sporty compact build, defined arms and legs",
+    "Overall frame: athletic mesomorph, toned muscle definition, firm abs, strong shoulders, fit gym-trained body",
   Curvy:
-    "BODY TYPE: curvy hourglass figure, dramatically wide hips, thick thighs, narrow waist, full bust, soft feminine curves, voluptuous pear-hourglass silhouette, body-positive plus-curve proportions",
+    "Overall frame: curvy hourglass silhouette, wide hip-to-waist ratio, thick thighs, soft feminine curves, voluptuous lower body",
 };
 
-/** Natural-language body block — models respond to this far better than raw cm. */
+/** Natural-language body block — sliders are authoritative for measurements. */
 export function buildBodyPrompt(c: InfluencerConfig): string {
   const gender = c.gender_presentation ?? "Female";
-  const chest = bustDescription(c);
 
   return [
+    `CRITICAL — chest/bust: ${bustDescription(c)}`,
+    `CRITICAL — waist: ${waistDescription(c)}`,
+    `CRITICAL — hips: ${hipsDescription(c)}`,
     BODY_TYPE_BLOCK[c.body_type],
-    `PROPORTIONS: ${heightDescription(c)}.`,
-    `Chest/bust: ${chest}.`,
-    `Waist: ${waistDescription(c)}.`,
-    `Hips: ${hipsDescription(c)}.`,
+    `Height: ${heightDescription(c)}.`,
     gender === "Male"
-      ? "Male anatomy, masculine upper body proportions."
+      ? "Male anatomy, masculine proportions."
       : gender === "Non-binary"
-        ? "Androgynous balanced proportions, gender-neutral silhouette."
-        : "Female anatomy, feminine body proportions.",
-    "The body shape and proportions described above must be clearly visible and accurate in the final image.",
+        ? "Androgynous proportions."
+        : "Female anatomy.",
+    "These exact body proportions MUST be clearly visible. Do NOT use a generic default body.",
   ].join(" ");
 }
 
-/** True when appearance identity should reset (fresh text-to-image). */
+/** Body/proportion changes always need fresh text-to-image — img2img locks the old body shape. */
+export function hasProportionChange(prev: InfluencerConfig | null, next: InfluencerConfig): boolean {
+  if (!prev) return true;
+  return (
+    prev.bust !== next.bust ||
+    prev.waist !== next.waist ||
+    prev.hips !== next.hips ||
+    prev.height_cm !== next.height_cm ||
+    prev.body_type !== next.body_type
+  );
+}
+
 export function isMajorAppearanceChange(prev: InfluencerConfig | null, next: InfluencerConfig): boolean {
   if (!prev) return true;
   return (
+    hasProportionChange(prev, next) ||
     prev.gender_presentation !== next.gender_presentation ||
     prev.ethnicity !== next.ethnicity ||
     prev.skin_tone !== next.skin_tone ||
@@ -109,17 +135,6 @@ export function isMajorAppearanceChange(prev: InfluencerConfig | null, next: Inf
     prev.hair_length !== next.hair_length ||
     prev.hair_style !== next.hair_style ||
     prev.eye_color !== next.eye_color ||
-    prev.body_type !== next.body_type ||
     prev.age !== next.age
   );
-}
-
-export function img2imgStrength(prev: InfluencerConfig | null, next: InfluencerConfig): number {
-  if (!prev || isMajorAppearanceChange(prev, next)) return 0.88;
-  const delta =
-    Math.abs(prev.bust - next.bust) / 50 +
-    Math.abs(prev.waist - next.waist) / 35 +
-    Math.abs(prev.hips - next.hips) / 45 +
-    Math.abs(prev.height_cm - next.height_cm) / 40;
-  return Math.min(0.92, 0.68 + delta * 0.14);
 }
