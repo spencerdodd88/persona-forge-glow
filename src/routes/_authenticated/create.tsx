@@ -201,15 +201,26 @@ function CreatePage() {
             {/* Decorative inner gold frame */}
             <div className="pointer-events-none absolute inset-3 rounded-[1.6rem] border border-primary/30 z-10" />
 
-            {/* Avatar layer — photo when available, SVG fallback otherwise */}
-            <div key={version} className="absolute inset-0 animate-fade-up">
+            {/* Avatar layer — AI image when available, photo fallback, SVG last resort */}
+            <div className="absolute inset-0">
               {(() => {
+                if (aiImage && !aiFailed) {
+                  return (
+                    <img
+                      src={aiImage}
+                      alt="AI influencer preview"
+                      className={`absolute inset-0 w-full h-full object-cover transition-[filter,opacity] duration-500 ${aiFinal ? "blur-0" : "blur-2xl"}`}
+                      draggable={false}
+                    />
+                  );
+                }
                 const photo = resolvePhoto(renderedConfig);
                 return photo
                   ? <PhotoPreview url={photo} />
                   : <InfluencerAvatar config={renderedConfig} pose={renderedPose} animated />;
               })()}
             </div>
+
 
             {/* Generating overlay */}
             <div className={`absolute inset-0 z-20 flex items-center justify-center pointer-events-none transition-opacity duration-300 ${generating ? "opacity-100" : "opacity-0"}`}>
