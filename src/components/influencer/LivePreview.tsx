@@ -13,6 +13,8 @@ type Props = {
   version: number;
   summary: string;
   onCyclePose: () => void;
+  /** Compact layout for onboarding wizard */
+  variant?: "default" | "wizard";
 };
 
 export function LivePreview({
@@ -26,18 +28,24 @@ export function LivePreview({
   version,
   summary,
   onCyclePose,
+  variant = "default",
 }: Props) {
   const hasAi = Boolean(aiImage);
   const showSvgPlaceholder = !hasAi;
+  const isWizard = variant === "wizard";
 
   return (
-    <div className="sticky top-20 self-start flex flex-col w-full">
+    <div className={`${isWizard ? "lg:sticky lg:top-20" : "sticky top-20"} self-start flex flex-col w-full`}>
       <div className="relative w-full">
-        <div className="absolute -inset-4 rounded-[2.5rem] bg-gradient-to-br from-primary/8 via-transparent to-accent/6 pointer-events-none" />
+        {!isWizard && (
+          <div className="absolute -inset-4 rounded-[2.5rem] bg-gradient-to-br from-primary/8 via-transparent to-accent/6 pointer-events-none" />
+        )}
         <div
-          className="relative w-full aspect-[3/4] min-h-[520px] rounded-[2rem] overflow-hidden bg-card
-                     ring-1 ring-border/80
-                     shadow-[0_48px_100px_-40px_rgba(70,55,30,0.28),0_12px_40px_-16px_rgba(70,55,30,0.14)]"
+          className={`relative w-full aspect-[3/4] overflow-hidden bg-card ring-1 ring-border/80 ${
+            isWizard
+              ? "min-h-[280px] sm:min-h-[360px] lg:min-h-[480px] rounded-[1.5rem] lg:rounded-[2rem] shadow-[0_24px_60px_-32px_rgba(70,55,30,0.22)]"
+              : "min-h-[520px] rounded-[2rem] shadow-[0_48px_100px_-40px_rgba(70,55,30,0.28),0_12px_40px_-16px_rgba(70,55,30,0.14)]"
+          }`}
         >
           <div className="pointer-events-none absolute inset-4 rounded-[1.5rem] border border-primary/25 z-10" />
           <div className="pointer-events-none absolute inset-[18px] rounded-[1.35rem] border border-primary/10 z-10" />
@@ -116,11 +124,13 @@ export function LivePreview({
         </div>
       </div>
 
-      <div className="mt-8 p-6 rounded-2xl glass-card border-primary/10 space-y-4">
+      <div
+        className={`${isWizard ? "mt-4 lg:mt-6 p-4 lg:p-5" : "mt-8 p-6"} rounded-2xl glass-card border-primary/10 space-y-3 lg:space-y-4`}
+      >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.28em] text-primary/70 font-medium mb-1">Character</p>
-            <h2 className="font-display text-3xl md:text-4xl truncate leading-tight">
+            <h2 className={`font-display truncate leading-tight ${isWizard ? "text-xl lg:text-3xl" : "text-3xl md:text-4xl"}`}>
               {config.name || "Unnamed"}
             </h2>
           </div>
@@ -130,9 +140,11 @@ export function LivePreview({
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground leading-relaxed">{summary}</p>
+        <p className={`text-muted-foreground leading-relaxed ${isWizard ? "text-xs lg:text-sm line-clamp-2" : "text-sm"}`}>
+          {summary}
+        </p>
 
-        {config.bio && (
+        {!isWizard && config.bio && (
           <blockquote className="text-sm text-foreground/80 italic border-l-2 border-primary/30 pl-4 py-0.5">
             {config.bio}
           </blockquote>

@@ -206,3 +206,30 @@
   border-color: oklch(0.74 0.11 80 / 0.6);
   box-shadow: 0 2px 8px oklch(0.50 0.08 80 / 0.25);
 }
+
+/* Onboarding wizard */
+.wizard-choice-card {
+  border-radius: 1rem;
+  border: 1px solid oklch(0.89 0.012 75 / 0.9);
+  background: oklch(1 0 0 / 0.55);
+  color: var(--color-muted-foreground);
+}
+.wizard-choice-card:hover {
+  border-color: oklch(0.74 0.11 80 / 0.35);
+  background: oklch(1 0 0 / 0.75);
+  color: var(--color-foreground);
+}
+.wizard-choice-card-active {
+  border-color: oklch(0.74 0.11 80 / 0.55);
+  background: oklch(0.74 0.11 80 / 0.08);
+  color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px oklch(0.74 0.11 80 / 0.22);
+}
+.wizard-panel {
+  max-height: none;
+}
+@media (min-width: 1024px) {
+  .wizard-panel {
+    min-height: calc(100vh - 12rem);
+  }
+}

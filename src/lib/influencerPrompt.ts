@@ -1,18 +1,9 @@
 import type { InfluencerConfig } from "@/components/influencer/types";
 import { buildBodyPrompt } from "./bodyPrompt";
+import { buildScenePrompt } from "./scenePrompt";
 
 export function buildInfluencerPrompt(c: InfluencerConfig): string {
-  const sceneMap: Record<string, string> = {
-    "Beach Day": "on a sunny tropical beach, golden hour lighting",
-    "Luxury Bedroom": "in a luxurious bedroom with soft warm lighting",
-    "Gym Selfie": "in a modern gym, athletic atmosphere",
-    "Night Out": "at a stylish nightclub with neon bokeh",
-    "Yacht": "on a luxury yacht at sea, bright daylight",
-    "Coffee Shop": "in a cozy artisan coffee shop, warm window light",
-    "Penthouse": "in a luxury penthouse with city skyline view at dusk",
-    "Garden Party": "at an elegant garden party with soft sunlight and florals",
-  };
-  const scene = sceneMap[c.scene_preset] ?? c.scene_preset;
+  const sceneBlock = buildScenePrompt(c.scene_preset);
 
   const subject =
     (c.gender_presentation ?? "Female") === "Male" ? "man" :
@@ -21,17 +12,19 @@ export function buildInfluencerPrompt(c: InfluencerConfig): string {
 
   const bodyBlock = buildBodyPrompt(c);
 
-  // Body instructions first — diffusion models weight early tokens heavily
+  // Scene first — setting must dominate before body details or models default to generic outdoor/garden
   return [
+    sceneBlock,
+    `Environmental portrait in ${c.scene_preset} — background location must be unmistakable.`,
     bodyBlock,
     `Ultra-photorealistic editorial three-quarter body portrait photograph of one ${subject}, age ${c.age},`,
     `${c.ethnicity} heritage, ${c.skin_tone.toLowerCase()} skin,`,
     `${c.hair_color.toLowerCase()} ${c.hair_length.toLowerCase()} ${c.hair_style.toLowerCase()} hair,`,
-    `${c.eye_color.toLowerCase()} eyes,`,
-    `${scene}.`,
+    `${c.eye_color.toLowerCase()} eyes.`,
     "Single subject centered in frame, full torso visible, fashion magazine quality,",
-    "natural skin texture, soft cinematic lighting, shallow depth of field, 85mm lens.",
-    c.nsfw ? "Tasteful glamour fashion styling." : "Elegant chic fashionable outfit.",
+    "natural skin texture, soft cinematic lighting, background environment in sharp focus, wide environmental shot.",
+    c.nsfw ? "Tasteful glamour fashion styling." : "Elegant chic fashionable outfit matching the scene.",
+    sceneBlock,
     "Accurate body proportions as specified above — do not use a generic default body shape.",
   ].join(" ");
 }

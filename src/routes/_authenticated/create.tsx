@@ -1,22 +1,27 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { CharacterBuilderControls } from "@/components/influencer/CharacterBuilderControls";
+import { CreateWizard } from "@/components/influencer/wizard/CreateWizard";
 import { LivePreview } from "@/components/influencer/LivePreview";
 import { generatePreview } from "@/lib/generatePreview.functions";
 import { buildInfluencerPrompt } from "@/lib/influencerPrompt";
 import { DEFAULT_CONFIG, type InfluencerConfig, buildCharacterSummary, configPreviewSeed } from "@/components/influencer/types";
 
 export const Route = createFileRoute("/_authenticated/create")({
-  head: () => ({ meta: [{ title: "Character Builder · GenFluence" }] }),
+  head: () => ({ meta: [{ title: "Create Influencer · GenFluence" }] }),
   component: CreatePage,
 });
 
-/** Wait until the user pauses before firing Replicate (avoids spam while dragging sliders). */
-const GENERATION_DEBOUNCE_MS = 1400;
+const SLIDER_KEYS: (keyof InfluencerConfig)[] = ["age", "height_cm", "bust", "waist", "hips"];
+
+/** Sliders wait for drag pause; dropdowns/scene picks regenerate quickly. */
+function generationDebounceMs(prev: InfluencerConfig, next: InfluencerConfig): number {
+  const changed = (Object.keys(next) as (keyof InfluencerConfig)[]).filter((k) => prev[k] !== next[k]);
+  if (changed.length === 0) return 400;
+  const sliderOnly = changed.every((k) => SLIDER_KEYS.includes(k));
+  return sliderOnly ? 1400 : 400;
+}
 
 function CreatePage() {
   const navigate = useNavigate();
@@ -31,14 +36,16 @@ function CreatePage() {
   const requestIdRef = useRef(0);
   const hasAiRef = useRef(false);
   const prevGenerationConfigRef = useRef<InfluencerConfig | null>(null);
+  const prevConfigRef = useRef(config);
 
-  // Debounce config → generationConfig so sliders don't spam Replicate mid-drag
   useEffect(() => {
-    const t = setTimeout(() => setGenerationConfig(config), GENERATION_DEBOUNCE_MS);
+    const prev = prevConfigRef.current;
+    const delay = generationDebounceMs(prev, config);
+    prevConfigRef.current = config;
+    const t = setTimeout(() => setGenerationConfig(config), delay);
     return () => clearTimeout(t);
   }, [config]);
 
-  // Replicate generation — runs on debounced config + pose changes
   useEffect(() => {
     const requestId = ++requestIdRef.current;
     setGenerating(true);
@@ -46,7 +53,6 @@ function CreatePage() {
 
     const prompt = buildInfluencerPrompt(generationConfig) + ` Pose variation ${pose + 1}.`;
 
-    // Always fresh text-to-image — img2img preserves old body shape and breaks slider accuracy
     const payload = {
       prompt,
       seed: configPreviewSeed(generationConfig, pose),
@@ -74,7 +80,6 @@ function CreatePage() {
         if (requestId !== requestIdRef.current) return;
         console.error("AI preview failed", err);
         const msg = err instanceof Error ? err.message : "Preview generation failed";
-        // Keep last AI image on screen — only toast (no Lovable static fallback)
         if (hasAiRef.current) {
           toast.error(`Update failed — showing last preview. ${msg}`, {
             id: "preview-gen-error",
@@ -117,42 +122,37 @@ function CreatePage() {
 
   return (
     <div className="min-h-full bg-gradient-to-b from-background via-background to-secondary/20">
-      <div className="px-6 md:px-10 lg:px-12 py-8 md:py-10 max-w-[1680px] mx-auto animate-fade-up">
-        <header className="flex items-end justify-between flex-wrap gap-6 mb-10 md:mb-12">
-          <div className="space-y-2 max-w-xl">
-            <p className="text-[11px] uppercase tracking-[0.28em] text-primary/80 font-medium">Character Builder</p>
-            <h1 className="font-display text-4xl md:text-5xl lg:text-[3.25rem] leading-[1.08]">
-              Create your <span className="text-gradient-gold">influencer</span>
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground leading-relaxed pt-1">
-              Design a unique AI persona with precise controls. Preview updates live as you refine each detail.
-            </p>
-          </div>
-          <Button
-            onClick={save}
-            disabled={saving}
-            className="h-12 px-8 rounded-xl bg-gradient-luxe text-primary-foreground border-0 hover:opacity-90 shadow-[var(--shadow-soft)]"
-          >
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            Save character
-          </Button>
+      <div className="px-5 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-10 max-w-[1480px] mx-auto animate-fade-up">
+        <header className="mb-6 sm:mb-8 lg:mb-10">
+          <p className="text-[11px] uppercase tracking-[0.28em] text-primary/80 font-medium">New influencer</p>
+          <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl leading-[1.1] mt-2">
+            Create your <span className="text-gradient-gold">influencer</span>
+          </h1>
         </header>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(340px,420px)_minmax(0,1fr)] gap-8 xl:gap-12 items-start">
-          <CharacterBuilderControls config={config} onUpdate={update} />
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(300px,420px)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,440px)] gap-8 lg:gap-10 xl:gap-12 items-start">
+          {/* Mobile: preview first; desktop: wizard left */}
+          <div className="order-2 lg:order-1 min-w-0">
+            <div className="wizard-panel glass-card rounded-2xl border-primary/10 p-5 sm:p-7 lg:p-8 shadow-[var(--shadow-soft)]">
+              <CreateWizard config={config} onUpdate={update} onSave={save} saving={saving} />
+            </div>
+          </div>
 
-          <LivePreview
-            config={config}
-            renderedConfig={config}
-            pose={pose}
-            renderedPose={pose}
-            aiImage={aiImage}
-            aiFinal={aiFinal}
-            generating={generating}
-            version={version}
-            summary={summary}
-            onCyclePose={cyclePose}
-          />
+          <div className="order-1 lg:order-2">
+            <LivePreview
+              config={config}
+              renderedConfig={config}
+              pose={pose}
+              renderedPose={pose}
+              aiImage={aiImage}
+              aiFinal={aiFinal}
+              generating={generating}
+              version={version}
+              summary={summary}
+              onCyclePose={cyclePose}
+              variant="wizard"
+            />
+          </div>
         </div>
       </div>
     </div>
