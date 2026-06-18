@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CharacterBuilderControls } from "@/components/influencer/CharacterBuilderControls";
 import { LivePreview } from "@/components/influencer/LivePreview";
 import { generatePreview } from "@/lib/generatePreview.functions";
+import { img2imgStrength, isMajorAppearanceChange } from "@/lib/bodyPrompt";
 import { buildInfluencerPrompt } from "@/lib/influencerPrompt";
 import { DEFAULT_CONFIG, type InfluencerConfig, buildCharacterSummary, configPreviewSeed } from "@/components/influencer/types";
 
@@ -30,6 +31,12 @@ function CreatePage() {
   const [aiFinal, setAiFinal] = useState(false);
   const requestIdRef = useRef(0);
   const hasAiRef = useRef(false);
+  const aiImageRef = useRef<string | null>(null);
+  const prevGenerationConfigRef = useRef<InfluencerConfig | null>(null);
+
+  useEffect(() => {
+    aiImageRef.current = aiImage;
+  }, [aiImage]);
 
   // Debounce config → generationConfig so sliders don't spam Replicate mid-drag
   useEffect(() => {
@@ -44,10 +51,20 @@ function CreatePage() {
     setAiFinal(false);
 
     const prompt = buildInfluencerPrompt(generationConfig) + ` Pose variation ${pose + 1}.`;
+    const prevConfig = prevGenerationConfigRef.current;
+    const referenceImage = aiImageRef.current ?? undefined;
+    const useReference = referenceImage && !isMajorAppearanceChange(prevConfig, generationConfig);
+
     const payload = {
       prompt,
       seed: configPreviewSeed(generationConfig, pose),
       nsfw: generationConfig.nsfw,
+      ...(useReference
+        ? {
+            referenceImage,
+            promptStrength: img2imgStrength(prevConfig, generationConfig),
+          }
+        : {}),
     };
 
     (async () => {
@@ -66,6 +83,7 @@ function CreatePage() {
         setAiImage(url);
         setAiFinal(true);
         hasAiRef.current = true;
+        prevGenerationConfigRef.current = generationConfig;
       } catch (err) {
         if (requestId !== requestIdRef.current) return;
         console.error("AI preview failed", err);

@@ -1,7 +1,13 @@
 /** Fetch AI preview via JSON API (works on Lovable edge + local dev). */
 export async function fetchPreview(
   endpoint: string,
-  body: { prompt: string; seed?: number; nsfw?: boolean },
+  body: {
+    prompt: string;
+    seed?: number;
+    nsfw?: boolean;
+    referenceImage?: string;
+    promptStrength?: number;
+  },
   signal?: AbortSignal,
 ): Promise<string> {
   const res = await fetch(endpoint, {

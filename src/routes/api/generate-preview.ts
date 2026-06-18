@@ -5,6 +5,8 @@ type Body = {
   prompt: string;
   seed?: number;
   nsfw?: boolean;
+  referenceImage?: string;
+  promptStrength?: number;
 };
 
 /** JSON fallback route for direct API testing / non-server-fn clients. */
@@ -19,13 +21,17 @@ export const Route = createFileRoute("/api/generate-preview")({
           return Response.json({ error: "Invalid JSON body" }, { status: 400 });
         }
 
-        const { prompt, seed, nsfw } = body;
+        const { prompt, seed, nsfw, referenceImage, promptStrength } = body;
         if (!prompt?.trim()) {
           return Response.json({ error: "Missing prompt" }, { status: 400 });
         }
 
         try {
-          const url = await runFluxPreview(prompt, { seed, nsfw }, request.signal);
+          const url = await runFluxPreview(
+            prompt,
+            { seed, nsfw, referenceImage, promptStrength },
+            request.signal,
+          );
           return Response.json({ url });
         } catch (err) {
           if ((err as Error).name === "AbortError") {

@@ -1,4 +1,5 @@
 import type { InfluencerConfig } from "@/components/influencer/types";
+import { buildBodyPrompt } from "./bodyPrompt";
 
 export function buildInfluencerPrompt(c: InfluencerConfig): string {
   const sceneMap: Record<string, string> = {
@@ -12,25 +13,25 @@ export function buildInfluencerPrompt(c: InfluencerConfig): string {
     "Garden Party": "at an elegant garden party with soft sunlight and florals",
   };
   const scene = sceneMap[c.scene_preset] ?? c.scene_preset;
-  const figure =
-    c.body_type === "Slim" ? "slim slender figure" :
-    c.body_type === "Athletic" ? "athletic toned figure" :
-    "curvy hourglass figure";
 
   const subject =
     (c.gender_presentation ?? "Female") === "Male" ? "man" :
     c.gender_presentation === "Non-binary" ? "androgynous person" :
     "woman";
 
+  const bodyBlock = buildBodyPrompt(c);
+
+  // Body instructions first — diffusion models weight early tokens heavily
   return [
-    `Ultra-photorealistic editorial portrait photograph of a single ${subject},`,
-    `${c.age} years old, ${c.ethnicity} ethnicity, ${c.skin_tone.toLowerCase()} skin tone,`,
+    bodyBlock,
+    `Ultra-photorealistic editorial three-quarter body portrait photograph of one ${subject}, age ${c.age},`,
+    `${c.ethnicity} heritage, ${c.skin_tone.toLowerCase()} skin,`,
     `${c.hair_color.toLowerCase()} ${c.hair_length.toLowerCase()} ${c.hair_style.toLowerCase()} hair,`,
-    `${c.eye_color.toLowerCase()} eyes, ${figure},`,
-    `height ${c.height_cm}cm, bust ${c.bust}cm, waist ${c.waist}cm, hips ${c.hips}cm,`,
+    `${c.eye_color.toLowerCase()} eyes,`,
     `${scene}.`,
-    "Three-quarter body shot, centered composition, fashion magazine quality,",
+    "Single subject centered in frame, full torso visible, fashion magazine quality,",
     "natural skin texture, soft cinematic lighting, shallow depth of field, 85mm lens.",
     c.nsfw ? "Tasteful glamour fashion styling." : "Elegant chic fashionable outfit.",
+    "Accurate body proportions as specified above — do not use a generic default body shape.",
   ].join(" ");
 }
